@@ -39,8 +39,8 @@ export default function Home() {
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col items-center px-4 pt-20 sm:pt-28 pb-16">
-      {/* Input phase — always visible when no result */}
-      {!result && !loading && (
+      {/* Input phase — only on clean initial state */}
+      {!result && !loading && !error && (
         <InputSection
           value={inputText}
           onChange={setInputText}
