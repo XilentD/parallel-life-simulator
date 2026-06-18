@@ -2,7 +2,6 @@
 
 import { useState, useRef, useEffect } from "react";
 import { useGenerate } from "@/hooks/useGenerate";
-import { useDailyLimit } from "@/hooks/useDailyLimit";
 import InputSection from "@/components/InputSection";
 import LoadingState from "@/components/LoadingState";
 import ErrorState from "@/components/ErrorState";
@@ -11,8 +10,6 @@ import ResultDisplay from "@/components/ResultDisplay";
 export default function Home() {
   const [inputText, setInputText] = useState("");
   const { loading, error, result, generate, reset } = useGenerate();
-  const { remaining, canGenerate, limit, usageCount, increment } =
-    useDailyLimit();
 
   const resultRef = useRef<HTMLDivElement>(null);
 
@@ -24,9 +21,8 @@ export default function Home() {
   }, [result]);
 
   const handleGenerate = async () => {
-    if (!inputText.trim() || !canGenerate || loading) return;
+    if (!inputText.trim() || loading) return;
     await generate(inputText.trim());
-    increment();
   };
 
   const handlePreset = (text: string) => {
@@ -48,10 +44,6 @@ export default function Home() {
           onChange={setInputText}
           onGenerate={handleGenerate}
           onPreset={handlePreset}
-          remaining={remaining}
-          limit={limit}
-          usageCount={usageCount}
-          canGenerate={canGenerate}
           loading={false}
         />
       )}
@@ -59,16 +51,11 @@ export default function Home() {
       {/* Loading phase */}
       {loading && (
         <>
-          {/* Keep input visible but frozen */}
           <InputSection
             value={inputText}
             onChange={setInputText}
             onGenerate={handleGenerate}
             onPreset={handlePreset}
-            remaining={remaining}
-            limit={limit}
-            usageCount={usageCount}
-            canGenerate={false}
             loading={true}
           />
           <LoadingState />
@@ -83,10 +70,6 @@ export default function Home() {
             onChange={setInputText}
             onGenerate={handleGenerate}
             onPreset={handlePreset}
-            remaining={remaining}
-            limit={limit}
-            usageCount={usageCount}
-            canGenerate={canGenerate}
             loading={false}
           />
           <ErrorState message={error} onRetry={handleGenerate} />
@@ -96,7 +79,6 @@ export default function Home() {
       {/* Result phase */}
       {result && (
         <>
-          {/* Collapsed input banner */}
           <div className="w-full max-w-xl mx-auto mb-6 text-center">
             <button
               onClick={handleReset}

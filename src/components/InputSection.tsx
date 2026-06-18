@@ -1,15 +1,10 @@
 import PresetTemplates from './PresetTemplates';
-import DailyCounter from './DailyCounter';
 
 interface InputSectionProps {
   value: string;
   onChange: (value: string) => void;
   onGenerate: () => void;
   onPreset: (text: string) => void;
-  remaining: number;
-  limit: number;
-  usageCount: number;
-  canGenerate: boolean;
   loading: boolean;
 }
 
@@ -18,13 +13,9 @@ export default function InputSection({
   onChange,
   onGenerate,
   onPreset,
-  remaining,
-  limit,
-  usageCount,
-  canGenerate,
   loading,
 }: InputSectionProps) {
-  const atLimit = !canGenerate && !loading;
+  const canSubmit = value.trim() && !loading;
 
   return (
     <section className="w-full max-w-xl mx-auto space-y-6">
@@ -51,20 +42,19 @@ export default function InputSection({
           onKeyDown={(e) => {
             if (e.key === 'Enter' && !e.shiftKey) {
               e.preventDefault();
-              if (value.trim() && canGenerate && !loading) onGenerate();
+              if (canSubmit) onGenerate();
             }
           }}
           placeholder='输入一个"如果当初..."，比如：如果当初我没离开北京...'
           rows={3}
           maxLength={200}
-          disabled={loading || atLimit}
+          disabled={loading}
           className="w-full bg-transparent text-white text-lg placeholder:text-white/25
                      resize-none outline-none disabled:opacity-40
                      leading-relaxed"
         />
 
-        <div className="flex items-center justify-between">
-          <DailyCounter used={usageCount} limit={limit} />
+        <div className="flex items-center justify-end">
           <span className="text-xs text-white/30 tabular-nums">
             {value.length}/200
           </span>
@@ -72,7 +62,7 @@ export default function InputSection({
 
         <button
           onClick={onGenerate}
-          disabled={!value.trim() || !canGenerate || loading}
+          disabled={!canSubmit}
           className="w-full py-3.5 rounded-xl font-medium text-base
                      bg-gradient-to-r from-indigo-500 to-purple-500
                      hover:from-indigo-400 hover:to-purple-400
@@ -87,8 +77,6 @@ export default function InputSection({
               <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
               正在穿越平行宇宙...
             </span>
-          ) : atLimit ? (
-            '今日次数已用完，明天再来 ✨'
           ) : (
             '开启平行宇宙'
           )}
@@ -100,7 +88,7 @@ export default function InputSection({
         <p className="text-xs text-white/30 uppercase tracking-widest">
           或者试试这些
         </p>
-        <PresetTemplates onSelect={onPreset} disabled={loading || atLimit} />
+        <PresetTemplates onSelect={onPreset} disabled={loading} />
       </div>
     </section>
   );

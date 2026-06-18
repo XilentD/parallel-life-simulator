@@ -1,4 +1,4 @@
-import { SYSTEM_PROMPT, buildUserPrompt } from './prompts';
+import { SYSTEM_PROMPT } from './prompts';
 import type { GenerationResult } from './types';
 
 const DEEPSEEK_API_URL = 'https://api.deepseek.com/v1/chat/completions';
@@ -15,7 +15,7 @@ export async function generateStorylines(input: string): Promise<GenerationResul
       model: MODEL,
       messages: [
         { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: buildUserPrompt(input) },
+        { role: 'user', content: `假如${input}，请为我创作3条平行人生故事线。` },
       ],
       temperature: 0.85,
       max_tokens: 4096,
