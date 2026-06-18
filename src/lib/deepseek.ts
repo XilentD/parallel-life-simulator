@@ -8,15 +8,42 @@ export async function generateStorylines(
   input: string,
   gender?: string | null
 ): Promise<GenerationResult> {
-  let userPrompt = `假如${input}，请为我创作3条平行人生故事线。`;
+  const userPrompt = buildUserPrompt(input, gender);
 
-  if (gender === 'male') {
-    userPrompt += '\n我是男性。';
-  } else if (gender === 'female') {
-    userPrompt += '\n我是女性。';
+  // First attempt: normal generation
+  try {
+    return await callDeepSeek(userPrompt, 0.85);
+  } catch (firstError) {
+    const isJsonError =
+      firstError instanceof Error &&
+      (firstError.message.includes('JSON') ||
+        firstError.message.includes('parse') ||
+        firstError.message.includes('position') ||
+        firstError.message.includes('token'));
+
+    if (isJsonError) {
+      // Retry 1: lower temperature
+      console.warn('JSON error, retry 1/2 (temp=0.3)...');
+      try {
+        return await callDeepSeek(userPrompt, 0.3);
+      } catch {
+        // Retry 2: even lower, shorter output
+        console.warn('JSON error, retry 2/2 (temp=0.1)...');
+        try {
+          return await callDeepSeek(userPrompt, 0.1);
+        } catch {
+          // All attempts failed
+        }
+      }
+    }
+    throw firstError;
   }
-  // If neither selected, no gender hint — the model will use neutral perspective
+}
 
+async function callDeepSeek(
+  userPrompt: string,
+  temperature: number
+): Promise<GenerationResult> {
   const response = await fetch(DEEPSEEK_API_URL, {
     method: 'POST',
     headers: {
@@ -29,10 +56,10 @@ export async function generateStorylines(
         { role: 'system', content: SYSTEM_PROMPT },
         { role: 'user', content: userPrompt },
       ],
-      temperature: 0.85,
-      max_tokens: 4096,
+      temperature,
+      max_tokens: 8192,
       top_p: 0.95,
-      presence_penalty: 0.3,
+      presence_penalty: temperature > 0.5 ? 0.3 : 0.1,
     }),
   });
 
@@ -45,54 +72,100 @@ export async function generateStorylines(
   const content = data.choices?.[0]?.message?.content;
   if (!content) throw new Error('Empty response from DeepSeek');
 
-  // Strip potential markdown code fences
-  let cleaned = content
-    .replace(/^```json\s*/i, '')
-    .replace(/```\s*$/, '')
-    .trim();
+  const cleaned = cleanAndParse(content);
+  return cleaned;
+}
 
-  // Attempt parse, with repair on failure
-  try {
-    return JSON.parse(cleaned) as GenerationResult;
-  } catch (firstError) {
-    console.warn('First parse attempt failed, trying repairs...');
-    try {
-      cleaned = repairJSON(cleaned);
-      return JSON.parse(cleaned) as GenerationResult;
-    } catch {
-      // Throw a clean error with position info from the first attempt
-      const msg = firstError instanceof Error ? firstError.message : String(firstError);
-      throw new Error(`AI 返回格式异常，请重试。(${msg.slice(0, 80)})`);
-    }
+function buildUserPrompt(input: string, gender?: string | null): string {
+  let prompt = `假如${input}，请为我创作3条平行人生故事线。`;
+  if (gender === 'male') prompt += '\n我是男性。';
+  if (gender === 'female') prompt += '\n我是女性。';
+  return prompt;
+}
+
+function cleanAndParse(content: string): GenerationResult {
+  // Strip markdown code fences and any non-JSON wrapper text
+  let raw = content.trim();
+
+  // Remove ```json fences
+  raw = raw.replace(/^```json\s*/i, '').replace(/```\s*$/, '').trim();
+
+  // Extract JSON object: find the outermost { ... }
+  const firstBrace = raw.indexOf('{');
+  const lastBrace = raw.lastIndexOf('}');
+  if (firstBrace !== -1 && lastBrace > firstBrace) {
+    raw = raw.slice(firstBrace, lastBrace + 1);
   }
+
+  // Apply repairs BEFORE first parse attempt
+  const repaired = repairJSON(raw);
+
+  return JSON.parse(repaired) as GenerationResult;
 }
 
 /**
  * Repair common LLM JSON issues:
  * - Trailing commas before } or ]
- * - Unescaped control characters inside strings
+ * - Unescaped control characters inside string values
+ * - Unescaped double quotes within string values (e.g. dialogue)
  */
 function repairJSON(raw: string): string {
   let s = raw;
 
-  // Remove trailing commas before } or ]
+  // 1. Remove trailing commas before } or ]
   s = s.replace(/,(\s*[}\]])/g, '$1');
 
-  // Fix unescaped newlines inside string values
-  // (brute force: find all strings, escape inner control chars)
-  s = s.replace(
-    /"((?:[^"\\]|\\.)*)"/g,
-    (_, inner: string) => {
-      const fixed = inner
-        .replace(/\n/g, '\\n')
-        .replace(/\r/g, '\\r')
-        .replace(/\t/g, '\\t');
-      return `"${fixed}"`;
-    }
-  );
+  // 2. Escape control characters within JSON strings
+  // We walk through the string char by char, tracking whether we're inside a string
+  const chars: string[] = [];
+  let inString = false;
+  let escaped = false;
 
-  // Remove trailing comma in arrays/objects at end of file
-  s = s.replace(/,(\s*)$/gm, '$1');
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+
+    if (escaped) {
+      chars.push(ch);
+      escaped = false;
+      continue;
+    }
+
+    if (ch === '\\' && inString) {
+      chars.push(ch);
+      escaped = true;
+      continue;
+    }
+
+    if (ch === '"') {
+      inString = !inString;
+      chars.push(ch);
+      continue;
+    }
+
+    // Inside a string: escape control characters
+    if (inString) {
+      if (ch === '\n') { chars.push('\\'); chars.push('n'); continue; }
+      if (ch === '\r') { chars.push('\\'); chars.push('r'); continue; }
+      if (ch === '\t') { chars.push('\\'); chars.push('t'); continue; }
+    }
+
+    chars.push(ch);
+  }
+
+  s = chars.join('');
+
+  // 3. If the JSON is truncated (missing closing brackets), try to close it
+  const openBraces = (s.match(/{/g) || []).length;
+  const closeBraces = (s.match(/}/g) || []).length;
+  const openBrackets = (s.match(/\[/g) || []).length;
+  const closeBrackets = (s.match(/\]/g) || []).length;
+
+  // Close any open strings
+  if (inString) s += '"';
+
+  // Close any open arrays/objects
+  for (let j = 0; j < openBrackets - closeBrackets; j++) s += ']';
+  for (let j = 0; j < openBraces - closeBraces; j++) s += '}';
 
   return s;
 }
