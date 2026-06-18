@@ -6,7 +6,14 @@ interface InputSectionProps {
   onGenerate: () => void;
   onPreset: (text: string) => void;
   loading: boolean;
+  gender: string | null;
+  onGenderChange: (g: string | null) => void;
 }
+
+const GENDER_OPTIONS = [
+  { key: 'male', label: '男性', icon: '♂' },
+  { key: 'female', label: '女性', icon: '♀' },
+];
 
 export default function InputSection({
   value,
@@ -14,6 +21,8 @@ export default function InputSection({
   onGenerate,
   onPreset,
   loading,
+  gender,
+  onGenderChange,
 }: InputSectionProps) {
   const canSubmit = value.trim() && !loading;
 
@@ -36,6 +45,33 @@ export default function InputSection({
                      transition-shadow duration-500 focus-within:shadow-[0_8px_60px_rgba(99,102,241,0.15)]
                      focus-within:border-white/[0.15]"
       >
+        {/* Gender pills */}
+        <div className="flex items-center gap-2">
+          <span className="text-xs text-white/25 mr-0.5">我是</span>
+          {GENDER_OPTIONS.map((opt) => {
+            const active = gender === opt.key;
+            return (
+              <button
+                key={opt.key}
+                onClick={() => onGenderChange(active ? null : opt.key)}
+                disabled={loading}
+                className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-300
+                  ${active
+                    ? 'bg-white/15 text-white border border-white/30 shadow-[0_0_10px_rgba(255,255,255,0.05)]'
+                    : 'bg-transparent text-white/35 border border-white/10 hover:text-white/60 hover:border-white/20'
+                  }
+                  disabled:opacity-30 disabled:cursor-not-allowed`}
+              >
+                <span className="mr-1">{opt.icon}</span>
+                {opt.label}
+              </button>
+            );
+          })}
+          <span className="text-xs text-white/20 ml-1 hidden sm:inline">
+            选填，不选则默认中性视角
+          </span>
+        </div>
+
         <textarea
           value={value}
           onChange={(e) => onChange(e.target.value)}

@@ -7,6 +7,7 @@ const InputSchema = z.object({
     .string()
     .min(2, '请输入至少2个字符')
     .max(200, '输入不能超过200字符'),
+  gender: z.enum(['male', 'female']).nullable().optional(),
 });
 
 export async function POST(request: Request) {
@@ -21,7 +22,7 @@ export async function POST(request: Request) {
       );
     }
 
-    const result = await generateStorylines(parsed.data.input);
+    const result = await generateStorylines(parsed.data.input, parsed.data.gender);
     return NextResponse.json({ success: true, data: result });
   } catch (error) {
     console.error('Generate API error:', error);

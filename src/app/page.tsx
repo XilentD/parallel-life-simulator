@@ -9,6 +9,7 @@ import ResultDisplay from "@/components/ResultDisplay";
 
 export default function Home() {
   const [inputText, setInputText] = useState("");
+  const [gender, setGender] = useState<string | null>(null);
   const { loading, error, result, generate, reset } = useGenerate();
 
   const resultRef = useRef<HTMLDivElement>(null);
@@ -22,7 +23,7 @@ export default function Home() {
 
   const handleGenerate = async () => {
     if (!inputText.trim() || loading) return;
-    await generate(inputText.trim());
+    await generate(inputText.trim(), gender);
   };
 
   const handlePreset = (text: string) => {
@@ -32,6 +33,7 @@ export default function Home() {
   const handleReset = () => {
     reset();
     setInputText("");
+    setGender(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
 
@@ -45,6 +47,8 @@ export default function Home() {
           onGenerate={handleGenerate}
           onPreset={handlePreset}
           loading={false}
+          gender={gender}
+          onGenderChange={setGender}
         />
       )}
 
@@ -57,6 +61,8 @@ export default function Home() {
             onGenerate={handleGenerate}
             onPreset={handlePreset}
             loading={true}
+            gender={gender}
+            onGenderChange={setGender}
           />
           <LoadingState />
         </>
@@ -71,6 +77,8 @@ export default function Home() {
             onGenerate={handleGenerate}
             onPreset={handlePreset}
             loading={false}
+            gender={gender}
+            onGenderChange={setGender}
           />
           <ErrorState message={error} onRetry={handleGenerate} />
         </>

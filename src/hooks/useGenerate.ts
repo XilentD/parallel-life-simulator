@@ -7,7 +7,7 @@ interface UseGenerateReturn {
   loading: boolean;
   error: string | null;
   result: GenerationResult | null;
-  generate: (input: string) => Promise<void>;
+  generate: (input: string, gender?: string | null) => Promise<void>;
   reset: () => void;
 }
 
@@ -16,7 +16,7 @@ export function useGenerate(): UseGenerateReturn {
   const [error, setError] = useState<string | null>(null);
   const [result, setResult] = useState<GenerationResult | null>(null);
 
-  const generate = useCallback(async (input: string) => {
+  const generate = useCallback(async (input: string, gender?: string | null) => {
     setLoading(true);
     setError(null);
     setResult(null);
@@ -25,7 +25,7 @@ export function useGenerate(): UseGenerateReturn {
       const res = await fetch('/api/generate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ input }),
+        body: JSON.stringify({ input, gender }),
       });
 
       const data = await res.json();
