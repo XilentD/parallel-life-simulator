@@ -1,0 +1,107 @@
+import PresetTemplates from './PresetTemplates';
+import DailyCounter from './DailyCounter';
+
+interface InputSectionProps {
+  value: string;
+  onChange: (value: string) => void;
+  onGenerate: () => void;
+  onPreset: (text: string) => void;
+  remaining: number;
+  limit: number;
+  usageCount: number;
+  canGenerate: boolean;
+  loading: boolean;
+}
+
+export default function InputSection({
+  value,
+  onChange,
+  onGenerate,
+  onPreset,
+  remaining,
+  limit,
+  usageCount,
+  canGenerate,
+  loading,
+}: InputSectionProps) {
+  const atLimit = !canGenerate && !loading;
+
+  return (
+    <section className="w-full max-w-xl mx-auto space-y-6">
+      {/* Header */}
+      <div className="text-center space-y-3">
+        <h1 className="text-4xl sm:text-5xl font-serif font-bold tracking-tight text-white">
+          平行人生模拟器
+        </h1>
+        <p className="text-lg text-white/50">
+          如果当初做出不同的选择，现在的你会在哪里？
+        </p>
+      </div>
+
+      {/* Input area */}
+      <div
+        className="backdrop-blur-xl bg-white/[0.04] border border-white/[0.08]
+                     rounded-2xl p-6 space-y-4 shadow-[0_8px_40px_rgba(0,0,0,0.3)]
+                     transition-shadow duration-500 focus-within:shadow-[0_8px_60px_rgba(99,102,241,0.15)]
+                     focus-within:border-white/[0.15]"
+      >
+        <textarea
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === 'Enter' && !e.shiftKey) {
+              e.preventDefault();
+              if (value.trim() && canGenerate && !loading) onGenerate();
+            }
+          }}
+          placeholder='输入一个"如果当初..."，比如：如果当初我没离开北京...'
+          rows={3}
+          maxLength={200}
+          disabled={loading || atLimit}
+          className="w-full bg-transparent text-white text-lg placeholder:text-white/25
+                     resize-none outline-none disabled:opacity-40
+                     leading-relaxed"
+        />
+
+        <div className="flex items-center justify-between">
+          <DailyCounter used={usageCount} limit={limit} />
+          <span className="text-xs text-white/30 tabular-nums">
+            {value.length}/200
+          </span>
+        </div>
+
+        <button
+          onClick={onGenerate}
+          disabled={!value.trim() || !canGenerate || loading}
+          className="w-full py-3.5 rounded-xl font-medium text-base
+                     bg-gradient-to-r from-indigo-500 to-purple-500
+                     hover:from-indigo-400 hover:to-purple-400
+                     disabled:from-white/10 disabled:to-white/10
+                     disabled:text-white/30 disabled:cursor-not-allowed
+                     text-white shadow-[0_4px_20px_rgba(99,102,241,0.3)]
+                     hover:shadow-[0_4px_30px_rgba(99,102,241,0.45)]
+                     transition-all duration-300"
+        >
+          {loading ? (
+            <span className="flex items-center justify-center gap-2">
+              <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+              正在穿越平行宇宙...
+            </span>
+          ) : atLimit ? (
+            '今日次数已用完，明天再来 ✨'
+          ) : (
+            '开启平行宇宙'
+          )}
+        </button>
+      </div>
+
+      {/* Presets */}
+      <div className="text-center space-y-3">
+        <p className="text-xs text-white/30 uppercase tracking-widest">
+          或者试试这些
+        </p>
+        <PresetTemplates onSelect={onPreset} disabled={loading || atLimit} />
+      </div>
+    </section>
+  );
+}

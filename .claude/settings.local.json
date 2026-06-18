@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx next *)",
+      "PowerShell(Start-Sleep -Seconds 5; try { $r = Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing -TimeoutSec 5; \"Server is running. Status: $\\($r.StatusCode\\)\" } catch { \"Server not ready yet: $_\" })",
+      "PowerShell($r = Invoke-WebRequest -Uri \"http://localhost:3000\" -UseBasicParsing; $content = $r.Content; if \\($content -match \"平行人生模拟器\"\\) { \"✓ Title found\" } else { \"✗ Title missing\" }; if \\($content -match \"开启平行宇宙\"\\) { \"✓ Button found\" } else { \"✗ Button missing\" }; if \\($content -match \"如果当初\"\\) { \"✓ Preset found\" } else { \"✗ Preset missing\" }; if \\($content -match \"noto-serif\"\\) { \"✓ Font loaded\" } else { \"✗ Font missing\" }; $content.Length)",
+      "PowerShell($body = '{\"input\":\"如果当初我没离开北京\"}'; try { $r = Invoke-WebRequest -Uri \"http://localhost:3000/api/generate\" -Method POST -Body $body -ContentType \"application/json\" -UseBasicParsing; $r.Content } catch { $_.Exception.Message; if \\($_.Exception.Response\\) { $reader = New-Object System.IO.StreamReader\\($_.Exception.Response.GetResponseStream\\(\\)\\); $reader.ReadToEnd\\(\\) } })"
+    ]
+  }
+}
