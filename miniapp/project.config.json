@@ -1,0 +1,15 @@
+{
+  "miniprogramRoot": "dist/weapp/",
+  "projectname": "parallel-life",
+  "description": "平行人生模拟器",
+  "appid": "touristappid",
+  "setting": {
+    "urlCheck": false,
+    "es6": false,
+    "enhance": false,
+    "compileHotReLoad": false,
+    "postcss": false,
+    "minified": false
+  },
+  "compileType": "miniprogram"
+}

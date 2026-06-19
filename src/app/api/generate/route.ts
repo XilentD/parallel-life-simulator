@@ -1,6 +1,12 @@
-import { NextResponse } from 'next/server';
+import { NextRequest, NextResponse } from 'next/server';
 import { generateStorylines } from '@/lib/deepseek';
 import { z } from 'zod';
+
+const corsHeaders = {
+  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  'Access-Control-Allow-Headers': 'Content-Type',
+};
 
 const InputSchema = z.object({
   input: z
@@ -10,7 +16,11 @@ const InputSchema = z.object({
   gender: z.enum(['male', 'female']).nullable().optional(),
 });
 
-export async function POST(request: Request) {
+export async function OPTIONS() {
+  return new NextResponse(null, { status: 204, headers: corsHeaders });
+}
+
+export async function POST(request: NextRequest) {
   try {
     const body = await request.json();
     const parsed = InputSchema.safeParse(body);
@@ -18,19 +28,22 @@ export async function POST(request: Request) {
     if (!parsed.success) {
       return NextResponse.json(
         { success: false, error: parsed.error.issues[0].message },
-        { status: 400 }
+        { status: 400, headers: corsHeaders }
       );
     }
 
     const result = await generateStorylines(parsed.data.input, parsed.data.gender);
-    return NextResponse.json({ success: true, data: result });
+    return NextResponse.json(
+      { success: true, data: result },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error('Generate API error:', error);
     const message =
       error instanceof Error ? error.message : '生成失败，请稍后重试';
     return NextResponse.json(
       { success: false, error: message },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
