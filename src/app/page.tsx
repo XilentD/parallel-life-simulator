@@ -8,11 +8,17 @@ import ErrorState from "@/components/ErrorState";
 import ResultDisplay from "@/components/ResultDisplay";
 
 export default function Home() {
+  const [mounted, setMounted] = useState(false);
   const [inputText, setInputText] = useState("");
   const [gender, setGender] = useState<string | null>(null);
   const { loading, error, result, generate, reset } = useGenerate();
 
   const resultRef = useRef<HTMLDivElement>(null);
+
+  // Ensure component only renders after client-side hydration
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   // Scroll to result when it appears
   useEffect(() => {
@@ -36,6 +42,23 @@ export default function Home() {
     setGender(null);
     window.scrollTo({ top: 0, behavior: "smooth" });
   };
+
+  // Server-side: render minimal shell to avoid hydration mismatch
+  if (!mounted) {
+    return (
+      <main className="relative z-10 min-h-screen flex flex-col items-center justify-center px-4">
+        <div className="text-center space-y-3">
+          <h1 className="text-4xl sm:text-5xl font-serif font-bold tracking-tight text-white">
+            平行人生模拟器
+          </h1>
+          <p className="text-lg text-white/50">
+            如果当初做出不同的选择，现在的你会在哪里？
+          </p>
+          <div className="w-6 h-6 border-2 border-white/20 border-t-white/60 rounded-full animate-spin mx-auto mt-6" />
+        </div>
+      </main>
+    );
+  }
 
   return (
     <main className="relative z-10 min-h-screen flex flex-col items-center px-4 pt-20 sm:pt-28 pb-16">
