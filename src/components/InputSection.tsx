@@ -55,6 +55,7 @@ export default function InputSection({
                 key={opt.key}
                 onClick={() => onGenderChange(active ? null : opt.key)}
                 disabled={loading}
+                aria-pressed={active}
                 className={`px-3 py-1 rounded-full text-sm font-medium transition-all duration-300
                   ${active
                     ? 'bg-white/15 text-white border border-white/30 shadow-[0_0_10px_rgba(255,255,255,0.05)]'
@@ -73,6 +74,7 @@ export default function InputSection({
         </div>
 
         <textarea
+          aria-label="输入一个如果当初的假设"
           value={value}
           onChange={(e) => onChange(e.target.value)}
           onKeyDown={(e) => {

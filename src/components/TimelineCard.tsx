@@ -36,7 +36,7 @@ export default function TimelineCard({ storyline, index }: TimelineCardProps) {
       {/* Timeline events */}
       <div className="space-y-3">
         {storyline.events.map((event, i) => (
-          <div key={i} className="flex gap-3 items-start">
+          <div key={`${event.year}-${i}`} className="flex gap-3 items-start">
             <span className="shrink-0 text-xs font-mono text-white/40 bg-white/5 px-2 py-0.5 rounded">
               {event.year}
             </span>

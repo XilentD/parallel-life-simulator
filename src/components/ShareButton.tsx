@@ -19,12 +19,20 @@ export default function ShareButton() {
         backgroundColor: '#0f0c29',
       });
 
-      const link = document.createElement('a');
-      link.download = `平行人生_${new Date().toISOString().slice(0, 10)}.png`;
-      link.href = canvas.toDataURL('image/png');
-      link.click();
+      const blob = await new Promise<Blob | null>((resolve) =>
+        canvas.toBlob(resolve, 'image/png')
+      );
+      if (blob) {
+        const url = URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.download = `平行人生_${new Date().toISOString().slice(0, 10)}.png`;
+        link.href = url;
+        link.click();
+        URL.revokeObjectURL(url);
+      }
     } catch (e) {
       console.error('Share failed:', e);
+      alert('截图生成失败，请重试');
     } finally {
       setSaving(false);
     }

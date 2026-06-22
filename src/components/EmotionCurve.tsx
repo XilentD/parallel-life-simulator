@@ -1,3 +1,4 @@
+import { useId } from 'react';
 import type { EmotionPoint } from '@/lib/types';
 
 interface EmotionCurveProps {
@@ -5,6 +6,7 @@ interface EmotionCurveProps {
 }
 
 export default function EmotionCurve({ data }: EmotionCurveProps) {
+  const gradientId = useId();
   const W = 260;
   const H = 72;
   const PAD = 12; // padding for points near edges
@@ -47,13 +49,13 @@ export default function EmotionCurve({ data }: EmotionCurveProps) {
         {/* Area fill */}
         <polygon
           points={areaStr}
-          fill="url(#grad)"
+          fill={`url(#${gradientId})`}
           opacity="0.15"
         />
 
         {/* Gradient def */}
         <defs>
-          <linearGradient id="grad" x1="0" y1="0" x2="0" y2="1">
+          <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
             <stop offset="0%" stopColor="#818cf8" />
             <stop offset="100%" stopColor="#818cf8" stopOpacity="0" />
           </linearGradient>

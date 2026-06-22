@@ -11,6 +11,7 @@ export default function ShareCard({ data, inputText }: ShareCardProps) {
   return (
     <div
       id="share-card"
+      aria-hidden="true"
       className="fixed"
       style={{
         left: '-9999px',

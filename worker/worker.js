@@ -75,7 +75,7 @@ export default {
       const { input, gender } = body;
 
       // Validation
-      if (!input || input.length < 2) {
+      if (typeof input !== 'string' || input.length < 2) {
         return json({ success: false, error: '请输入至少2个字符' }, 400);
       }
       if (input.length > 200) {
@@ -83,6 +83,9 @@ export default {
       }
       if (isPromptInjection(input)) {
         return json({ success: false, error: '输入包含不安全内容' }, 400);
+      }
+      if (!env.DEEPSEEK_API_KEY) {
+        return json({ success: false, error: 'Server configuration error' }, 500);
       }
 
       const result = await generateStorylines(input, gender, env.DEEPSEEK_API_KEY);
@@ -128,35 +131,45 @@ function isJsonRelated(err) {
 }
 
 async function callDeepSeek(userPrompt, temperature, apiKey) {
-  const res = await fetch(DEEPSEEK_API_URL, {
-    method: 'POST',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${apiKey}`,
-    },
-    body: JSON.stringify({
-      model: MODEL,
-      messages: [
-        { role: 'system', content: SYSTEM_PROMPT },
-        { role: 'user', content: userPrompt },
-      ],
-      temperature,
-      max_tokens: 8192,
-      top_p: 0.95,
-      presence_penalty: temperature > 0.5 ? 0.3 : 0.1,
-    }),
-  });
+  const controller = new AbortController();
+  const timeoutId = setTimeout(() => controller.abort(), 90000);
 
-  if (!res.ok) {
-    const err = await res.text();
-    throw new Error(`DeepSeek API error ${res.status}: ${err}`);
+  try {
+    const res = await fetch(DEEPSEEK_API_URL, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
+      body: JSON.stringify({
+        model: MODEL,
+        messages: [
+          { role: 'system', content: SYSTEM_PROMPT },
+          { role: 'user', content: userPrompt },
+        ],
+        temperature,
+        max_tokens: 8192,
+        top_p: 0.95,
+        presence_penalty: temperature > 0.5 ? 0.3 : 0.1,
+      }),
+      signal: controller.signal,
+    });
+
+    if (!res.ok) {
+      const status = res.status;
+      if (status === 401) throw new Error('API authentication failed.');
+      if (status === 429) throw new Error('Rate limited. Please try again.');
+      throw new Error(`AI service error (${status}).`);
+    }
+
+    const data = await res.json();
+    const content = data.choices?.[0]?.message?.content;
+    if (!content) throw new Error('Empty response');
+
+    return cleanAndParse(content);
+  } finally {
+    clearTimeout(timeoutId);
   }
-
-  const data = await res.json();
-  const content = data.choices?.[0]?.message?.content;
-  if (!content) throw new Error('Empty response');
-
-  return cleanAndParse(content);
 }
 
 function cleanAndParse(content) {
@@ -173,11 +186,16 @@ function cleanAndParse(content) {
 function repairJSON(s) {
   s = s.replace(/,(\s*[}\]])/g, '$1');
 
+  // Walk character by character, tracking string state
   const chars = [];
   let inStr = false, esc = false;
   for (let i = 0; i < s.length; i++) {
     const ch = s[i];
-    if (esc) { chars.push(ch); esc = false; continue; }
+    if (esc) {
+      if (ch === 'u' && i + 4 < s.length) { chars.push('\\','u'); chars.push(s[++i],s[++i],s[++i],s[++i]); }
+      else chars.push(ch);
+      esc = false; continue;
+    }
     if (ch === '\\' && inStr) { chars.push(ch); esc = true; continue; }
     if (ch === '"') { inStr = !inStr; chars.push(ch); continue; }
     if (inStr) {
@@ -189,10 +207,18 @@ function repairJSON(s) {
   }
   s = chars.join('');
 
-  const ob = (s.match(/{/g) || []).length;
-  const cb = (s.match(/}/g) || []).length;
-  const osb = (s.match(/\[/g) || []).length;
-  const csb = (s.match(/\]/g) || []).length;
+  // Count braces ONLY outside strings
+  let ob = 0, cb = 0, osb = 0, csb = 0;
+  inStr = false; esc = false;
+  for (let i = 0; i < s.length; i++) {
+    const ch = s[i];
+    if (esc) { esc = false; continue; }
+    if (ch === '\\') { esc = true; continue; }
+    if (ch === '"') { inStr = !inStr; continue; }
+    if (inStr) continue;
+    if (ch === '{') ob++; if (ch === '}') cb++;
+    if (ch === '[') osb++; if (ch === ']') csb++;
+  }
   if (inStr) s += '"';
   for (let j = 0; j < osb - csb; j++) s += ']';
   for (let j = 0; j < ob - cb; j++) s += '}';
@@ -208,16 +234,17 @@ function json(data, status = 200) {
 }
 
 function isPromptInjection(input) {
+  if (typeof input !== 'string') return true;
   const patterns = [
-    /忽略.{0,10}(指令|提示|规则|设定|角色)/i,
-    /(ignore|forget|discard).{0,20}(instruction|prompt|rule|system)/i,
-    /输出.{0,5}(系统提示|提示词|指令|规则)/i,
-    /(print|output|show|reveal).{0,10}(system|prompt|instruction)/i,
-    /你是一个.{0,20}(而不是|不再是|现在是)/i,
-    /(new|新).{0,5}(instruction|指令|规则|设定)/i,
-    /DAN\s|jailbreak|越狱/i,
+    /忽略[\s\S]{0,10}(指令|提示|规则|设定|角色)/i,
+    /(ignore|forget|discard)[\s\S]{0,20}(instruction|prompt|rule|system)/i,
+    /输出[\s\S]{0,5}(系统提示|提示词|指令|规则)/i,
+    /(print|output|show|reveal)[\s\S]{0,10}(system|prompt|instruction)/i,
+    /你是一个[\s\S]{0,20}(而不是|不再是|现在是)/i,
+    /(new|新)[\s\S]{0,10}(instruction|指令|规则|设定)/i,
+    /DAN\b|jailbreak|越狱/i,
     /\[system\]|\[prompt\]|\[指令\]/i,
-    /<\|.*\|>/i,
+    /<\|[\s\S]*\|>/i,
   ];
   return patterns.some((p) => p.test(input));
 }

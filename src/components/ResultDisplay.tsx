@@ -32,11 +32,15 @@ export default function ResultDisplay({
       </div>
 
       {/* Three timeline cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {data.storylines.map((s, i) => (
-          <TimelineCard key={s.id} storyline={s} index={i} />
-        ))}
-      </div>
+      {data.storylines.length === 0 ? (
+        <p className="text-white/40 text-center mb-10">暂无结果，请重试</p>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
+          {data.storylines.map((s, i) => (
+            <TimelineCard key={`${s.id}-${i}`} storyline={s} index={i} />
+          ))}
+        </div>
+      )}
 
       {/* Actions */}
       <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
