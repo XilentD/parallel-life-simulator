@@ -1,7 +1,7 @@
 import Taro from '@tarojs/taro';
 import type { ApiResponse, Gender } from '@/types';
 
-const API_URL = 'https://parallel-life-simulator-beta.vercel.app/api/generate';
+const API_URL = 'https://parallel-life-api.xilentd.workers.dev/api/generate';
 
 export async function generateStorylines(
   input: string,

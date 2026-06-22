@@ -34,7 +34,11 @@
       "Bash(npx vercel *)",
       "PowerShell(gh *)",
       "WebFetch(domain:api.github.com)",
-      "PowerShell($body = '{\"input\":\"如果当初我没离开北京\"}'; try { $r = Invoke-WebRequest -Uri \"https://parallel-life-simulator-beta.vercel.app/api/generate\" -Method POST -Body $body -ContentType \"application/json\" -UseBasicParsing -TimeoutSec 90; $j = $r.Content | ConvertFrom-Json; Write-Host \"SUCCESS - $\\($j.data.storylines.Count\\) storylines\"; $j.data.storylines | ForEach-Object { Write-Host \"  [$\\($_.id\\)] $\\($_.title\\)\" } } catch { Write-Host \"FAIL: $\\($_.Exception.Message\\)\" })"
+      "PowerShell($body = '{\"input\":\"如果当初我没离开北京\"}'; try { $r = Invoke-WebRequest -Uri \"https://parallel-life-simulator-beta.vercel.app/api/generate\" -Method POST -Body $body -ContentType \"application/json\" -UseBasicParsing -TimeoutSec 90; $j = $r.Content | ConvertFrom-Json; Write-Host \"SUCCESS - $\\($j.data.storylines.Count\\) storylines\"; $j.data.storylines | ForEach-Object { Write-Host \"  [$\\($_.id\\)] $\\($_.title\\)\" } } catch { Write-Host \"FAIL: $\\($_.Exception.Message\\)\" })",
+      "Bash(npx wrangler *)",
+      "Bash(curl *)",
+      "PowerShell(Invoke-WebRequest -Uri *workers.dev*)",
+      "PowerShell($body = '{\"input\":\"如果当初我没离开北京\"}'; try { $r = Invoke-WebRequest -Uri \"https://parallel-life-api.xilentd.workers.dev/api/generate\" -Method POST -Body $body -ContentType \"application/json\" -UseBasicParsing -TimeoutSec 90; $j = $r.Content | ConvertFrom-Json; Write-Host \"SUCCESS - $\\($j.data.storylines.Count\\) storylines\"; $j.data.storylines | ForEach-Object { Write-Host \"  [$\\($_.id\\)] $\\($_.title\\)\" } } catch { Write-Host \"FAIL: $\\($_.Exception.Message\\)\" })"
     ]
   }
 }

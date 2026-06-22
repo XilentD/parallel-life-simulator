@@ -1,0 +1,6 @@
+name = "parallel-life-api"
+main = "worker.js"
+compatibility_date = "2025-06-21"
+
+[observability]
+enabled = true
