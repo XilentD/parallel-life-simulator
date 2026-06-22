@@ -12,9 +12,26 @@ const InputSchema = z.object({
   input: z
     .string()
     .min(2, '请输入至少2个字符')
-    .max(200, '输入不能超过200字符'),
+    .max(200, '输入不能超过200字符')
+    .refine((val) => !isPromptInjection(val), '输入包含不安全内容'),
   gender: z.enum(['male', 'female']).nullable().optional(),
 });
+
+// Detect common prompt injection / jailbreak patterns
+function isPromptInjection(input: string): boolean {
+  const patterns = [
+    /忽略.{0,10}(指令|提示|规则|设定|角色)/i,
+    /(ignore|forget|discard).{0,20}(instruction|prompt|rule|system)/i,
+    /输出.{0,5}(系统提示|提示词|指令|规则)/i,
+    /(print|output|show|reveal).{0,10}(system|prompt|instruction)/i,
+    /你是一个.{0,20}(而不是|不再是|现在是)/i,
+    /(new|新).{0,5}(instruction|指令|规则|设定)/i,
+    /DAN\s|jailbreak|越狱/i,
+    /\[system\]|\[prompt\]|\[指令\]/i,
+    /<\|.*\|>/i,
+  ];
+  return patterns.some((p) => p.test(input));
+}
 
 export async function OPTIONS() {
   return new NextResponse(null, { status: 204, headers: corsHeaders });
